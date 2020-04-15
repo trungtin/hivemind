@@ -1,0 +1,14 @@
+{
+    "trigger": true,
+    "modules": [
+        "captcha-verify"
+    ],
+    "parentResource": "hivemind81cc8da3",
+    "functionName": "hivemind81cc8da3VerifyAuthChallengeResponse",
+    "parentStack": "auth",
+    "triggerEnvs": "[]",
+    "triggerTemplate": "VerifyAuthChallengeResponse.json.ejs",
+    "roleName": "hivemind81cc8da3VerifyAuthChallengeResponse",
+    "skipEdit": true,
+    "resourceName": "hivemind81cc8da3VerifyAuthChallengeResponse"
+}

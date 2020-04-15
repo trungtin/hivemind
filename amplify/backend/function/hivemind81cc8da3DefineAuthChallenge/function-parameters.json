@@ -1,0 +1,14 @@
+{
+    "trigger": true,
+    "modules": [
+        "captcha-define-challenge"
+    ],
+    "parentResource": "hivemind81cc8da3",
+    "functionName": "hivemind81cc8da3DefineAuthChallenge",
+    "parentStack": "auth",
+    "triggerEnvs": "[]",
+    "triggerTemplate": "DefineAuthChallenge.json.ejs",
+    "roleName": "hivemind81cc8da3DefineAuthChallenge",
+    "skipEdit": true,
+    "resourceName": "hivemind81cc8da3DefineAuthChallenge"
+}

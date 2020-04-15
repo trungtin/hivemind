@@ -1,0 +1,77 @@
+{
+	"function": {
+		"hivemind81cc8da3DefineAuthChallenge": {
+			"service": "Lambda",
+			"providerPlugin": "awscloudformation",
+			"build": true
+		},
+		"hivemind81cc8da3CreateAuthChallenge": {
+			"service": "Lambda",
+			"providerPlugin": "awscloudformation",
+			"build": true
+		},
+		"hivemind81cc8da3VerifyAuthChallengeResponse": {
+			"service": "Lambda",
+			"providerPlugin": "awscloudformation",
+			"build": true
+		},
+		"hivemind81cc8da3CustomMessage": {
+			"service": "Lambda",
+			"providerPlugin": "awscloudformation",
+			"build": true
+		}
+	},
+	"auth": {
+		"hivemind81cc8da3": {
+			"service": "Cognito",
+			"providerPlugin": "awscloudformation",
+			"dependsOn": [
+				{
+					"category": "function",
+					"resourceName": "hivemind81cc8da3DefineAuthChallenge",
+					"triggerProvider": "Cognito",
+					"attributes": [
+						"Arn",
+						"Name"
+					]
+				},
+				{
+					"category": "function",
+					"resourceName": "hivemind81cc8da3CreateAuthChallenge",
+					"triggerProvider": "Cognito",
+					"attributes": [
+						"Arn",
+						"Name"
+					]
+				},
+				{
+					"category": "function",
+					"resourceName": "hivemind81cc8da3VerifyAuthChallengeResponse",
+					"triggerProvider": "Cognito",
+					"attributes": [
+						"Arn",
+						"Name"
+					]
+				},
+				{
+					"category": "function",
+					"resourceName": "hivemind81cc8da3CustomMessage",
+					"triggerProvider": "Cognito",
+					"attributes": [
+						"Arn",
+						"Name"
+					]
+				}
+			]
+		}
+	},
+	"api": {
+		"hivemind": {
+			"service": "AppSync",
+			"providerPlugin": "awscloudformation",
+			"output": {
+				"securityType": "AMAZON_COGNITO_USER_POOLS"
+			}
+		}
+	}
+}

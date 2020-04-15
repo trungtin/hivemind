@@ -1,0 +1,14 @@
+{
+    "trigger": true,
+    "modules": [
+        "verification-link"
+    ],
+    "parentResource": "hivemind81cc8da3",
+    "functionName": "hivemind81cc8da3CustomMessage",
+    "parentStack": "auth",
+    "triggerEnvs": "[{\"key\":\"RESOURCENAME\",\"value\":\"resourceName\"}]",
+    "triggerTemplate": "CustomMessage.json.ejs",
+    "roleName": "hivemind81cc8da3CustomMessage",
+    "skipEdit": true,
+    "resourceName": "hivemind81cc8da3CustomMessage"
+}

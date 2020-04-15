@@ -1,0 +1,14 @@
+{
+    "trigger": true,
+    "modules": [
+        "captcha-create-challenge"
+    ],
+    "parentResource": "hivemind81cc8da3",
+    "functionName": "hivemind81cc8da3CreateAuthChallenge",
+    "parentStack": "auth",
+    "triggerEnvs": "[]",
+    "triggerTemplate": "CreateAuthChallenge.json.ejs",
+    "roleName": "hivemind81cc8da3CreateAuthChallenge",
+    "skipEdit": true,
+    "resourceName": "hivemind81cc8da3CreateAuthChallenge"
+}

@@ -1,0 +1,19 @@
+diff --git a/node_modules/@aws-amplify/datastore/src/storage/adapter/getDefaultAdapter/index.ts b/node_modules/@aws-amplify/datastore/src/storage/adapter/getDefaultAdapter/index.ts
+index 8e09cdf..ae9ce4c 100644
+--- a/node_modules/@aws-amplify/datastore/src/storage/adapter/getDefaultAdapter/index.ts
++++ b/node_modules/@aws-amplify/datastore/src/storage/adapter/getDefaultAdapter/index.ts
+@@ -1,7 +1,14 @@
+ import { Adapter } from '..';
+ 
++let indexedDBAdapter;
++
++export const setIndexedDBAdapter = (adapter: Adapter) => {
++	indexedDBAdapter = adapter;
++};
++
+ const getDefaultAdapter: () => Adapter = () => {
+ 	if (window.indexedDB) {
++		if (indexedDBAdapter) return indexedDBAdapter;
+ 		return require('../indexeddb').default;
+ 	}
+ 	if (process && process.env) {
