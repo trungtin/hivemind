@@ -1,28 +1,30 @@
 import React, { useState } from 'react'
-import logo from './logo.svg'
+import { Link, Route, Routes, useNavigate } from 'react-router-dom'
 import './App.css'
-import { Editor } from './Editor'
+import Page from './Page'
+import { initPage } from './services/page'
 
 function App() {
-  const [c, sc] = useState(0)
+  const navigate = useNavigate()
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload 3 {c}.
-        </p>
-        <button onClick={() => sc(c + 1)}>Increase</button>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
+      <nav>
+        <button
+          onClick={async () => {
+            const page = await initPage()
+            navigate(`/page/${page.id}`)
+          }}
         >
-          Learn React
-        </a>
-      </header>
-      <Editor></Editor>
+          New Page
+        </button>
+      </nav>
+      {/* <Page></Page> */}
+      <Routes>
+        <Route path="page">
+          {/* <Route path="" element={<Page />} /> */}
+          <Route path=":pageId" element={<Page />} />
+        </Route>
+      </Routes>
     </div>
   )
 }

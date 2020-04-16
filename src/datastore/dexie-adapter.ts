@@ -1,8 +1,9 @@
+
 import { ConsoleLogger as Logger } from '@aws-amplify/core'
 import Dexie from 'dexie'
-import { Adapter } from '@aws-amplify/datastore/src/storage/adapter'
-import { ModelInstanceCreator } from '@aws-amplify/datastore/src/datastore/datastore'
-import { ModelPredicateCreator } from '@aws-amplify/datastore/src/predicates'
+import { Adapter } from '@aws-amplify/datastore/lib/storage/adapter'
+import { ModelInstanceCreator } from '@aws-amplify/datastore/lib/datastore/datastore'
+import { ModelPredicateCreator } from '@aws-amplify/datastore/lib/predicates'
 import {
   InternalSchema,
   isPredicateObj,
@@ -15,7 +16,7 @@ import {
   QueryOne,
   RelationType,
   PaginationInput,
-} from '@aws-amplify/datastore/src/types'
+} from '@aws-amplify/datastore/lib/types'
 import {
   exhaustiveCheck,
   getIndex,
@@ -23,7 +24,7 @@ import {
   traverseModel,
   validatePredicate,
   isPrivateMode,
-} from '@aws-amplify/datastore/src/util'
+} from '@aws-amplify/datastore/lib/util'
 
 const logger = new Logger('DataStore')
 
