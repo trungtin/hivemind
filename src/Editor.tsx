@@ -1,11 +1,13 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import * as ReactDOM from 'react-dom'
-import { Slate, Editable, withReact, ReactEditor } from 'slate-react'
-import { Transforms, createEditor, Node, Range, Editor } from 'slate'
-import { withHistory } from 'slate-history'
-import flowRight from 'lodash/flowRight'
+import { EuiComboBoxOptionOption, EuiText, EuiTitle } from '@elastic/eui'
 import { createPopper } from '@popperjs/core'
+import flowRight from 'lodash/flowRight'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import * as ReactDOM from 'react-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+import { createEditor, Editor, Node, Range, Transforms } from 'slate'
+import { withHistory } from 'slate-history'
+import { Editable, ReactEditor, Slate, withReact } from 'slate-react'
+import PageSuggestion from './components/PageSuggestion'
 import { pageServices } from './services/page'
 
 const Portal = ({ children }) => {
@@ -19,15 +21,19 @@ const withPageLinkify = (editor) => {
     return element.type === 'page-link' ? true : isInline(element)
   }
 
-  editor.isVoid = (element) => {
-    return element.type === 'page-link' ? true : isVoid(element)
-  }
-
   return editor
 }
 
-const insertPageLink = (editor, character) => {
-  const pageLink = { type: 'page-link', character, children: [{ text: '' }] }
+type PageLink = {
+  id: string
+  text: string
+}
+
+const insertPageLink = (editor, link: PageLink) => {
+  const pageLink = {
+    type: 'page-link',
+    children: [{ pageId: link.id, text: link.text }],
+  }
   Transforms.insertNodes(editor, pageLink)
   Transforms.move(editor)
 }
@@ -82,7 +88,7 @@ const PageEditor = () => {
   const [value, setValue] = useState(initialValue)
   const [target, setTarget] = useState(undefined as Range | undefined | null)
   const [index, setIndex] = useState(0)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(null as null | string)
 
   useEffect(() => {
     servicesRef.current = pageServices(pageId)
@@ -106,7 +112,7 @@ const PageEditor = () => {
   }, [pageId])
 
   const renderElement = useCallback((props) => <Element {...props} />, [])
-  const editor = useMemo(
+  const editor: ReactEditor = useMemo(
     () =>
       flowRight([
         withLayout,
@@ -121,6 +127,7 @@ const PageEditor = () => {
     if (target && ref.current) {
       const targetDOM = ReactEditor.toDOMRange(editor, target)
 
+      // TODO: layout maybe break when the use-typing text span multiple line. Need a way to recalculate layout
       createPopper(targetDOM, ref.current, { placement: 'bottom' })
     }
   }, [target, ref])
@@ -159,67 +166,140 @@ const PageEditor = () => {
       })
     }
   }
-  return (
-    <Slate
-      editor={editor}
-      value={value}
-      onChange={async (newValue, ...args) => {
-        const isChanged = value !== newValue
-        if (isChanged) {
-          updateTitle(value, newValue)
-          updateBlocks(value, newValue)
-        }
-        setValue(newValue)
-        const { selection } = editor
 
+  const suggestRef = useRef<any>()
+
+  const onKeyDown = useCallback(
+    async function onKeyDown(event) {
+      if (target && suggestRef.current) {
+        suggestRef.current.handleKeyDown(event)
+      }
+      if (event.key === '[') {
+        event.preventDefault()
+        editor.insertText('[]')
+        Transforms.move(editor, { reverse: true })
+      } else if (event.key === 'Backspace') {
+        const { selection } = editor
         if (selection && Range.isCollapsed(selection)) {
           const [start] = Range.edges(selection)
-          const wordBefore = Editor.before(editor, start, { unit: 'word' })
-          const before = wordBefore && Editor.before(editor, wordBefore)
-          const beforeRange = before && Editor.range(editor, before, start)
-          const beforeText = beforeRange && Editor.string(editor, beforeRange)
-          const beforeMatch = beforeText && beforeText.match(/^\[\[(\w+)$/)
+          const before = Editor.before(editor, start)
           const after = Editor.after(editor, start)
-          const afterRange = Editor.range(editor, start, after)
-          const afterText = Editor.string(editor, afterRange)
-          const afterMatch = afterText.match(/^(\s|$)/)
-
-          if (beforeMatch && afterMatch) {
-            setTarget(beforeRange)
-            setSearch(beforeMatch[1])
-            setIndex(0)
-            return
+          const range = before && Editor.range(editor, before, after)
+          const text = range && Editor.string(editor, range)
+          if (text === '[]') {
+            event.preventDefault()
+            editor.deleteForward('character')
+            editor.deleteBackward('character')
           }
         }
+      }
+    },
+    [index, search, target]
+  )
 
-        setTarget(null)
-      }}
-    >
-      <Editable
-        renderElement={renderElement}
-        placeholder="Enter a title…"
-        spellCheck
-        autoFocus
-      />
-      {target && (
-        <Portal>
-          <div ref={ref}>HELLO</div>
-        </Portal>
-      )}
-    </Slate>
+  const [searchOptions, setSearchOptions] = useState(
+    [] as EuiComboBoxOptionOption[]
+  )
+
+  useEffect(() => {
+    if (search == null) {
+      setSearchOptions([])
+      return
+    }
+    services.searchPage(search).then((pages) => {
+      setSearchOptions(
+        pages.map((p) => ({
+          value: p.id,
+          label: p.title || '',
+        }))
+      )
+    })
+  }, [search])
+  return (
+    <EuiText grow={false}>
+      <Slate
+        editor={editor}
+        value={value}
+        onChange={async (newValue) => {
+          const isChanged = value !== newValue
+          if (isChanged) {
+            updateTitle(value, newValue)
+            updateBlocks(value, newValue)
+          }
+          setValue(newValue)
+          const { selection } = editor
+
+          if (selection && Range.isCollapsed(selection)) {
+            const [start] = Range.edges(selection)
+            const startLine = Editor.before(editor, start, {
+              unit: 'line',
+            })
+            const range =
+              startLine && start && Editor.range(editor, startLine, start)
+            const text = range && Editor.string(editor, range)
+            const match = text && text.match(/\[\[(((?!\]).)*)$/)
+
+            if (match) {
+              const matchText = match[1] || ''
+              const startMatch = Editor.before(editor, start, {
+                unit: 'character',
+                distance: match[0].length,
+              })
+              const matchRange =
+                startMatch && Editor.range(editor, startMatch, start)
+
+              setTarget(matchRange)
+              setSearch(matchText)
+              setIndex(0)
+              return
+            }
+          }
+
+          setTarget(null)
+          setSearch(null)
+        }}
+      >
+        <Editable
+          renderElement={renderElement}
+          placeholder="Enter a title…"
+          spellCheck
+          autoFocus
+          onKeyDown={onKeyDown}
+        />
+        {target && search != null && (
+          <Portal>
+            <div ref={ref}>
+              <PageSuggestion
+                ref={suggestRef}
+                options={searchOptions}
+                onOptionSelected={(option) => {
+                  insertPageLink(editor, {
+                    id: option.value as string,
+                    text: option.label,
+                  })
+                }}
+                searchText={search}
+              ></PageSuggestion>
+            </div>
+          </Portal>
+        )}
+      </Slate>
+    </EuiText>
   )
 }
 
 const Element = ({ attributes, children, element }) => {
   switch (element.type) {
     case 'title':
-      return <h2 {...attributes}>{children}</h2>
+      return (
+        <EuiTitle>
+          <h2 {...attributes}>{children}</h2>
+        </EuiTitle>
+      )
     case 'page-link':
       return (
-        <a href="#">
-          <span>[[</span>
+        <a href="#" {...attributes}>
           {children}
-          <span>]]</span>
         </a>
       )
     case 'paragraph':

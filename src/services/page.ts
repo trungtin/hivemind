@@ -1,4 +1,4 @@
-import { DataStore } from '@aws-amplify/datastore'
+import { DataStore, Predicates } from '@aws-amplify/datastore'
 import { Node } from 'slate'
 import { Page, Block } from '../models'
 import { batchAsync } from '../utils/batch'
@@ -55,7 +55,6 @@ export function pageServices(id: string) {
 
         return blocks.map((b) => {
           const content = b.content || ''
-          console.log(content)
           if (b.id != null && map[b.id] != null) {
             return Block.copyOf(map[b.id], (block) => {
               block.content = content
@@ -69,6 +68,16 @@ export function pageServices(id: string) {
     ),
     resolveNewBlock: (blockObject: object) => {
       return newBlockMap.get(blockObject)
+    },
+    searchPage: async (searchText: string) => {
+      const pages = await DataStore.query(
+        Page,
+        searchText === ''
+          ? Predicates.ALL
+          : (p) => p.title('contains', searchText),
+        { limit: 10 }
+      )
+      return pages
     },
   }
   return services

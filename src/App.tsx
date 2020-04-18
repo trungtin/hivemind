@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { Link, Route, Routes, useNavigate } from 'react-router-dom'
 import './App.css'
+import '@elastic/eui/dist/eui_theme_light.css'
+
 import Page from './Page'
 import { initPage } from './services/page'
 
