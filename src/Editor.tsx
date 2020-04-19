@@ -279,6 +279,7 @@ const PageEditor = () => {
                   })
                 }}
                 searchText={search}
+                escape={() => setTarget(null)}
               ></PageSuggestion>
             </div>
           </Portal>

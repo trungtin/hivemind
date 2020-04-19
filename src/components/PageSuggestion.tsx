@@ -20,6 +20,7 @@ type Props = {
   onOptionSelected: (option: EuiComboBoxOptionOption) => void
   searchText: string
   isLoading?: boolean
+  escape: () => void
 }
 
 function PageSuggestion(props: Props, ref) {
@@ -59,10 +60,10 @@ function PageSuggestion(props: Props, ref) {
             onOptionSelected(option)
           }
           break
-        // case 'Escape':
-        //   event.preventDefault()
-        //   setTarget(null)
-        //   break
+        case 'Escape':
+          event.preventDefault()
+          props.escape()
+          break
       }
     },
   }))
