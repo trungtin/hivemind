@@ -9,6 +9,7 @@ import { withHistory } from 'slate-history'
 import { Editable, ReactEditor, Slate, withReact } from 'slate-react'
 import PageSuggestion from './components/PageSuggestion'
 import { pageServices } from './services/page'
+import EditorControlBar from './components/EditorControlBar'
 
 const Portal = ({ children }) => {
   return ReactDOM.createPortal(children, document.body)
@@ -216,76 +217,79 @@ const PageEditor = () => {
     })
   }, [search])
   return (
-    <EuiText grow={false}>
-      <Slate
-        editor={editor}
-        value={value}
-        onChange={async (newValue) => {
-          const isChanged = value !== newValue
-          if (isChanged) {
-            updateTitle(value, newValue)
-            updateBlocks(value, newValue)
-          }
-          setValue(newValue)
-          const { selection } = editor
-
-          if (selection && Range.isCollapsed(selection)) {
-            const [start] = Range.edges(selection)
-            const startLine = Editor.before(editor, start, {
-              unit: 'line',
-            })
-            const range =
-              startLine && start && Editor.range(editor, startLine, start)
-            const text = range && Editor.string(editor, range)
-            const match = text && text.match(/\[\[(((?!\]).)*)$/)
-
-            if (match) {
-              const matchText = match[1] || ''
-              const startMatch = Editor.before(editor, start, {
-                unit: 'character',
-                distance: match[0].length,
-              })
-              const matchRange =
-                startMatch && Editor.range(editor, startMatch, start)
-
-              setTarget(matchRange)
-              setSearch(matchText)
-              setIndex(0)
-              return
+    <>
+      <EuiText grow={false}>
+        <Slate
+          editor={editor}
+          value={value}
+          onChange={async (newValue) => {
+            const isChanged = value !== newValue
+            if (isChanged) {
+              updateTitle(value, newValue)
+              updateBlocks(value, newValue)
             }
-          }
+            setValue(newValue)
+            const { selection } = editor
 
-          setTarget(null)
-          setSearch(null)
-        }}
-      >
-        <Editable
-          renderElement={renderElement}
-          placeholder="Enter a title…"
-          spellCheck
-          autoFocus
-          onKeyDown={onKeyDown}
-        />
-        {target && search != null && (
-          <Portal>
-            <div ref={ref}>
-              <PageSuggestion
-                ref={suggestRef}
-                options={searchOptions}
-                onOptionSelected={(option) => {
-                  insertPageLink(editor, {
-                    id: option.value as string,
-                    text: option.label,
-                  })
-                }}
-                searchText={search}
-                escape={() => setTarget(null)}
-              ></PageSuggestion>
-            </div>
-          </Portal>
-        )}
-      </Slate>
-    </EuiText>
+            if (selection && Range.isCollapsed(selection)) {
+              const [start] = Range.edges(selection)
+              const startLine = Editor.before(editor, start, {
+                unit: 'line',
+              })
+              const range =
+                startLine && start && Editor.range(editor, startLine, start)
+              const text = range && Editor.string(editor, range)
+              const match = text && text.match(/\[\[(((?!\]).)*)$/)
+
+              if (match) {
+                const matchText = match[1] || ''
+                const startMatch = Editor.before(editor, start, {
+                  unit: 'character',
+                  distance: match[0].length,
+                })
+                const matchRange =
+                  startMatch && Editor.range(editor, startMatch, start)
+
+                setTarget(matchRange)
+                setSearch(matchText)
+                setIndex(0)
+                return
+              }
+            }
+
+            setTarget(null)
+            setSearch(null)
+          }}
+        >
+          <Editable
+            renderElement={renderElement}
+            placeholder="Enter a title…"
+            spellCheck
+            autoFocus
+            onKeyDown={onKeyDown}
+          />
+          {target && search != null && (
+            <Portal>
+              <div ref={ref}>
+                <PageSuggestion
+                  ref={suggestRef}
+                  options={searchOptions}
+                  onOptionSelected={(option) => {
+                    insertPageLink(editor, {
+                      id: option.value as string,
+                      text: option.label,
+                    })
+                  }}
+                  searchText={search}
+                  escape={() => setTarget(null)}
+                ></PageSuggestion>
+              </div>
+            </Portal>
+          )}
+        </Slate>
+      </EuiText>
+      <EditorControlBar />
+    </>
   )
 }
 

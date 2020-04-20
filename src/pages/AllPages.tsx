@@ -1,6 +1,7 @@
 import * as React from 'react'
+import { useNavigate, Link } from 'react-router-dom'
 import { coreServices } from '../services/core'
-import { EuiBasicTable } from '@elastic/eui'
+import { EuiBasicTable, EuiBasicTableColumn } from '@elastic/eui'
 type Props = {}
 
 const useAllPages = () => {
@@ -22,11 +23,19 @@ const useAllPages = () => {
 
 function AllPages(props: Props) {
   const { allPages } = useAllPages()
+  const navigate = useNavigate()
   if (!allPages) return null
-  const columns = [
+  const columns: EuiBasicTableColumn<any>[] = [
     {
       field: 'title',
       name: 'Title',
+      render: (content, row) => {
+        return (
+          <Link className="euiLink" to={`/page/${row.id}`}>
+            {content}
+          </Link>
+        )
+      },
     },
   ]
   return (
