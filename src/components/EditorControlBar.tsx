@@ -6,6 +6,7 @@ import {
   EuiContextMenu,
   EuiIcon,
 } from '@elastic/eui'
+import { EditorModeProvider, EditorModeContext } from '../contexts/EditorMode'
 type Props = {}
 
 function flattenPanelTree(tree, array = [] as any[]) {
@@ -25,12 +26,14 @@ function flattenPanelTree(tree, array = [] as any[]) {
 
 function EditorControlBar(props: Props) {
   const [isPopoverOpen, setPopover] = React.useState(false)
+  const editorMode = React.useContext(EditorModeContext)
   const closePopover = () => {
     setPopover(false)
   }
   const button = (
     <EuiLink onClick={() => setPopover(!isPopoverOpen)}>
-      Normal Mode <EuiIcon type="arrowUp" size="m" aria-hidden="true" />
+      {editorMode.writingMode === 'text' ? 'Normal' : 'TODO'} Mode{' '}
+      <EuiIcon type="arrowUp" size="m" aria-hidden="true" />
     </EuiLink>
   )
 
@@ -42,12 +45,14 @@ function EditorControlBar(props: Props) {
           name: 'Normal Mode',
           // icon: <EuiIcon type="search" size="m" />,
           onClick: () => {
+            editorMode.setWritingMode('text')
             closePopover()
           },
         },
         {
           name: 'TODO Mode',
           onClick: () => {
+            editorMode.setWritingMode('todo')
             closePopover()
           },
         },

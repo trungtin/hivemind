@@ -13,6 +13,7 @@ function App() {
     <div className="App">
       <nav>
         <button
+          className=""
           onClick={async () => {
             const page = await initPage()
             navigate(`/page/${page.id}`)

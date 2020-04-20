@@ -4,12 +4,13 @@ import flowRight from 'lodash/flowRight'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as ReactDOM from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
-import { createEditor, Editor, Node, Range, Transforms } from 'slate'
+import { createEditor, Editor, Node, Range, Transforms, Point } from 'slate'
 import { withHistory } from 'slate-history'
 import { Editable, ReactEditor, Slate, withReact } from 'slate-react'
 import PageSuggestion from './components/PageSuggestion'
 import { pageServices } from './services/page'
 import EditorControlBar from './components/EditorControlBar'
+import { CheckListItem } from './components/editor-elements/CheckListItem'
 
 const Portal = ({ children }) => {
   return ReactDOM.createPortal(children, document.body)
@@ -19,7 +20,14 @@ const withPageLinkify = (editor) => {
   const { isInline, isVoid } = editor
 
   editor.isInline = (element) => {
-    return element.type === 'page-link' ? true : isInline(element)
+    switch (element.type) {
+      case 'page-link':
+        return true
+      case 'check-list-item':
+        return false
+      default:
+        return isInline(element)
+    }
   }
 
   return editor
@@ -39,6 +47,38 @@ const insertPageLink = (editor, link: PageLink) => {
   Transforms.move(editor)
 }
 
+const withChecklists = (editor) => {
+  const { deleteBackward } = editor
+
+  editor.deleteBackward = (...args) => {
+    const { selection } = editor
+
+    if (selection && Range.isCollapsed(selection)) {
+      const [match] = Editor.nodes(editor, {
+        match: (n) => n.type === 'check-list-item',
+      })
+
+      if (match) {
+        const [, path] = match
+        const start = Editor.start(editor, path)
+
+        if (Point.equals(selection.anchor, start)) {
+          Transforms.setNodes(
+            editor,
+            { type: 'paragraph' },
+            { match: (n) => n.type === 'check-list-item' }
+          )
+          return
+        }
+      }
+    }
+
+    deleteBackward(...args)
+  }
+
+  return editor
+}
+
 const withLayout = (editor) => {
   const { normalizeNode } = editor
 
@@ -54,11 +94,15 @@ const withLayout = (editor) => {
         Transforms.insertNodes(editor, paragraph, { at: path.concat(1) })
       }
 
-      for (const [child, childPath] of Node.children(editor, path)) {
-        const type = childPath[0] === 0 ? 'title' : 'paragraph'
+      const first = Node.child(editor, 0)
 
-        if (child.type !== type) {
-          Transforms.setNodes(editor, { type }, { at: childPath })
+      if (first.type !== 'title') {
+        Transforms.setNodes(editor, { type: 'title' }, { at: [0] })
+      }
+
+      for (const [child, childPath] of Node.children(editor, path)) {
+        if (child.type === 'title' && childPath[0] !== 0) {
+          Transforms.setNodes(editor, { type: 'paragraph' }, { at: childPath })
         }
       }
     }
@@ -117,6 +161,7 @@ const PageEditor = () => {
     () =>
       flowRight([
         withLayout,
+        withChecklists,
         withPageLinkify,
         withHistory,
         withReact,
@@ -293,7 +338,8 @@ const PageEditor = () => {
   )
 }
 
-const Element = ({ attributes, children, element }) => {
+const Element = (props) => {
+  const { attributes, children, element } = props
   switch (element.type) {
     case 'title':
       return (
@@ -309,6 +355,9 @@ const Element = ({ attributes, children, element }) => {
       )
     case 'paragraph':
       return <p {...attributes}>{children}</p>
+    case 'check-list-item':
+      return <CheckListItem {...props} />
+
     default:
       return null
   }
