@@ -11,8 +11,22 @@ import Suggestion from './components/Suggestion'
 import { pageServices } from './services/page'
 import EditorControlBar from './components/EditorControlBar'
 import { CheckListItem } from './components/editor-elements/CheckListItem'
+import { EditListPlugin } from '@productboard/slate-edit-list'
 
 import Fuse from 'fuse.js'
+
+const [
+  withEditList, // applies normalization to editor
+  listPluginOnKeyDown, // keyDown handler for keyboard shortcuts
+  { Editor: ListEditor, Element: ListElement, Transforms: ListTransform }, // Slate classes with added utility functions and transforms this package provides
+] = EditListPlugin({
+  types: ['ul_list', 'ol_list', 'list'],
+  typeItem: 'list_item',
+  typeDefault: 'paragraph',
+  canMerge(n1, n2) {
+    return true
+  },
+})
 
 const COMMAND_LIST = [
   {
@@ -184,11 +198,21 @@ const PageEditor = () => {
             {
               type: 'title',
               children: [{ text: page.title || '' }],
-            },
+            } as Node,
           ].concat(
             page.blocks.map((block) => ({
-              type: 'paragraph',
-              children: [{ text: block.content || '' }],
+              type: 'ul_list',
+              children: [
+                {
+                  type: 'list_item',
+                  children: [
+                    {
+                      type: 'paragraph',
+                      children: [{ text: block.content || '' }],
+                    },
+                  ],
+                },
+              ],
             }))
           )
         )
@@ -200,6 +224,7 @@ const PageEditor = () => {
   const editor: ReactEditor = useMemo(
     () =>
       flowRight([
+        withEditList,
         withLayout,
         withChecklists,
         withPageLinkify,
@@ -279,6 +304,7 @@ const PageEditor = () => {
           }
         }
       }
+      listPluginOnKeyDown(editor)(event)
     },
     [index, search, target]
   )
@@ -320,6 +346,7 @@ const PageEditor = () => {
       }
     }
   }, [search])
+  console.log(editor)
   return (
     <>
       <EuiText grow={false}>
@@ -450,7 +477,13 @@ const Element = (props) => {
       return <p {...attributes}>{children}</p>
     case 'check-list-item':
       return <CheckListItem {...props} />
+    case 'ul_list':
+      return <ul {...attributes}>{children}</ul>
+    case 'ol_list':
+      return <ol {...attributes}>{children}</ol>
 
+    case 'list_item':
+      return <li {...attributes}>{children}</li>
     default:
       return null
   }
@@ -460,6 +493,15 @@ const initialValue: Node[] = [
   {
     type: 'title',
     children: [{ text: '' }],
+  },
+  {
+    type: 'ul_list',
+    children: [
+      {
+        type: 'list_item',
+        children: [{ type: 'paragraph', children: [{ text: '' }] }],
+      },
+    ],
   },
 ]
 
