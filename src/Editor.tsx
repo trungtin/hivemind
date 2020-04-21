@@ -12,6 +12,27 @@ import { pageServices } from './services/page'
 import EditorControlBar from './components/EditorControlBar'
 import { CheckListItem } from './components/editor-elements/CheckListItem'
 
+import Fuse from 'fuse.js'
+
+const COMMAND_LIST = [
+  {
+    label: 'TODO',
+    exec: () => {},
+  },
+  { label: 'Slider', exec: () => {} },
+  { label: 'Table', exec: () => {} },
+  { label: 'Date Picker', exec: () => {} },
+  { label: 'Current Time', exec: () => {} },
+  { label: 'Today', exec: () => {} },
+]
+
+const commandSearch = new Fuse(COMMAND_LIST, { keys: ['label'] })
+
+const COMMAND_MAX_LENGTH = 16
+const matchCommandRegex = new RegExp(
+  `\\/((\\w|$)[\\w\\s]{0,${COMMAND_MAX_LENGTH}})`
+)
+
 const Portal = ({ children }) => {
   return ReactDOM.createPortal(children, document.body)
 }
@@ -133,7 +154,9 @@ const PageEditor = () => {
   const [value, setValue] = useState(initialValue)
   const [target, setTarget] = useState(undefined as Range | undefined | null)
   const [index, setIndex] = useState(0)
-  const [search, setSearch] = useState(null as null | string)
+  const [search, setSearch] = useState(
+    null as null | { type: 'page' | 'command'; text: string }
+  )
 
   useEffect(() => {
     servicesRef.current = pageServices(pageId)
@@ -252,14 +275,33 @@ const PageEditor = () => {
       setSearchOptions([])
       return
     }
-    services.searchPage(search).then((pages) => {
-      setSearchOptions(
-        pages.map((p) => ({
-          value: p.id,
-          label: p.title || '',
-        }))
-      )
-    })
+    if (search.type === 'page') {
+      services.searchPage(search.text).then((pages) => {
+        setSearchOptions(
+          pages.map((p) => ({
+            value: p.id,
+            label: p.title || '',
+          }))
+        )
+      })
+    } else if (search.type === 'command') {
+      if (search.text === '') {
+        setSearchOptions(
+          COMMAND_LIST.map((c) => ({
+            value: 0,
+            label: c.label,
+          }))
+        )
+      } else {
+        const commands = commandSearch.search(search.text)
+        setSearchOptions(
+          commands.map((c) => ({
+            value: 0,
+            label: c.item.label,
+          }))
+        )
+      }
+    }
   }, [search])
   return (
     <>
@@ -284,7 +326,11 @@ const PageEditor = () => {
               const range =
                 startLine && start && Editor.range(editor, startLine, start)
               const text = range && Editor.string(editor, range)
-              const match = text && text.match(/\[\[(((?!\]).)*)$/)
+
+              // Match with page suggestion
+              // TODO: modify this to be non-greedy version
+              // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Quantifiers
+              let match = text && text.match(/\[\[(((?!\]).)*)$/)
 
               if (match) {
                 const matchText = match[1] || ''
@@ -296,7 +342,25 @@ const PageEditor = () => {
                   startMatch && Editor.range(editor, startMatch, start)
 
                 setTarget(matchRange)
-                setSearch(matchText)
+                setSearch({ type: 'page', text: matchText })
+                setIndex(0)
+                return
+              }
+
+              // Match with command list
+              match = text && text.match(matchCommandRegex)
+
+              if (match) {
+                const matchText = match[1] || ''
+                const startMatch = Editor.before(editor, start, {
+                  unit: 'character',
+                  distance: match[0].length,
+                })
+                const matchRange =
+                  startMatch && Editor.range(editor, startMatch, start)
+
+                setTarget(matchRange)
+                setSearch({ type: 'command', text: matchText })
                 setIndex(0)
                 return
               }
@@ -325,7 +389,7 @@ const PageEditor = () => {
                       text: option.label,
                     })
                   }}
-                  searchText={search}
+                  searchText={search.text}
                   escape={() => setTarget(null)}
                 ></PageSuggestion>
               </div>
