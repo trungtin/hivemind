@@ -7,7 +7,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { createEditor, Editor, Node, Range, Transforms, Point } from 'slate'
 import { withHistory } from 'slate-history'
 import { Editable, ReactEditor, Slate, withReact } from 'slate-react'
-import PageSuggestion from './components/PageSuggestion'
+import Suggestion from './components/Suggestion'
 import { pageServices } from './services/page'
 import EditorControlBar from './components/EditorControlBar'
 import { CheckListItem } from './components/editor-elements/CheckListItem'
@@ -17,21 +17,38 @@ import Fuse from 'fuse.js'
 const COMMAND_LIST = [
   {
     label: 'TODO',
-    exec: () => {},
+    exec: (editor: ReactEditor) => {
+      const { selection } = editor
+      if (!selection) return
+
+      Transforms.setNodes(
+        editor,
+        { type: 'check-list-item' },
+        {
+          at: selection,
+          match: (n) => Editor.isBlock(editor, n) && n.type !== 'title',
+          split: false,
+        }
+      )
+    },
   },
-  { label: 'Slider', exec: () => {} },
-  { label: 'Table', exec: () => {} },
-  { label: 'Date Picker', exec: () => {} },
-  { label: 'Current Time', exec: () => {} },
-  { label: 'Today', exec: () => {} },
+  { label: 'Slider', exec: (editor: ReactEditor) => {} },
+  { label: 'Table', exec: (editor: ReactEditor) => {} },
+  { label: 'Date Picker', exec: (editor: ReactEditor) => {} },
+  { label: 'Current Time', exec: (editor: ReactEditor) => {} },
+  { label: 'Today', exec: (editor: ReactEditor) => {} },
 ]
 
 const commandSearch = new Fuse(COMMAND_LIST, { keys: ['label'] })
 
 const COMMAND_MAX_LENGTH = 16
 const matchCommandRegex = new RegExp(
-  `\\/((\\w|$)[\\w\\s]{0,${COMMAND_MAX_LENGTH}})`
+  `\\/((\\w|$)[\\w\\s]{0,${COMMAND_MAX_LENGTH}})$`
 )
+
+function removeCommand(editor: ReactEditor) {
+  const { selection } = editor
+}
 
 const Portal = ({ children }) => {
   return ReactDOM.createPortal(children, document.body)
@@ -288,7 +305,7 @@ const PageEditor = () => {
       if (search.text === '') {
         setSearchOptions(
           COMMAND_LIST.map((c) => ({
-            value: 0,
+            value: c.label,
             label: c.label,
           }))
         )
@@ -296,7 +313,7 @@ const PageEditor = () => {
         const commands = commandSearch.search(search.text)
         setSearchOptions(
           commands.map((c) => ({
-            value: 0,
+            value: c.item.label,
             label: c.item.label,
           }))
         )
@@ -380,18 +397,30 @@ const PageEditor = () => {
           {target && search != null && (
             <Portal>
               <div ref={ref}>
-                <PageSuggestion
-                  ref={suggestRef}
-                  options={searchOptions}
-                  onOptionSelected={(option) => {
-                    insertPageLink(editor, {
-                      id: option.value as string,
-                      text: option.label,
-                    })
-                  }}
-                  searchText={search.text}
-                  escape={() => setTarget(null)}
-                ></PageSuggestion>
+                {!(search.type === 'command' && searchOptions.length === 0) && (
+                  <Suggestion
+                    ref={suggestRef}
+                    options={searchOptions}
+                    onOptionSelected={(option) => {
+                      if (search.type === 'page') {
+                        insertPageLink(editor, {
+                          id: option.value as string,
+                          text: option.label,
+                        })
+                      } else if (search.type === 'command') {
+                        const command = COMMAND_LIST.find(
+                          (c) => c.label === option.label
+                        )!
+                        command.exec(editor)
+                        if (target) {
+                          Transforms.delete(editor, { at: target })
+                        }
+                      }
+                    }}
+                    searchText={search.text}
+                    escape={() => setTarget(null)}
+                  ></Suggestion>
+                )}
               </div>
             </Portal>
           )}

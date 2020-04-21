@@ -23,7 +23,7 @@ type Props = {
   escape: () => void
 }
 
-function PageSuggestion(props: Props, ref) {
+function Suggestion(props: Props, ref) {
   const idRef = useRef(htmlIdGenerator())
   const { isLoading, options, searchText, onOptionSelected } = props
 
@@ -135,4 +135,4 @@ function PageSuggestion(props: Props, ref) {
   )
 }
 
-export default forwardRef(PageSuggestion)
+export default forwardRef(Suggestion)
