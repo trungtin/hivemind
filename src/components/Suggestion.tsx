@@ -55,6 +55,10 @@ function Suggestion(props: Props, ref) {
         case 'Tab':
         case 'Enter':
           event.preventDefault()
+          if (activeOptionIndex === -1 && options.length > 0) {
+            setActiveOptionIndex(0)
+            break
+          }
           const option = options[activeOptionIndex]
           if (option) {
             onOptionSelected(option)

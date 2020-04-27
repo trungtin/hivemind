@@ -14,6 +14,10 @@ import { CheckListItem } from './components/editor-elements/CheckListItem'
 import { EditListPlugin } from '@productboard/slate-edit-list'
 
 import Fuse from 'fuse.js'
+import { withSerialize } from './services/withSerialize'
+import { modelToSlate, slateToModel } from './services/serialize'
+import { Page } from './models'
+import { DataStore } from '@aws-amplify/datastore'
 
 const [
   withEditList, // applies normalization to editor
@@ -193,29 +197,33 @@ const PageEditor = () => {
     servicesRef.current = pageServices(pageId)
     servicesRef.current.pageResolve.then((page) => {
       if (value === initialValue) {
-        setValue(
-          [
-            {
-              type: 'title',
-              children: [{ text: page.title || '' }],
-            } as Node,
-          ].concat(
-            page.blocks.map((block) => ({
-              type: 'ul_list',
-              children: [
-                {
-                  type: 'list_item',
-                  children: [
-                    {
-                      type: 'paragraph',
-                      children: [{ text: block.content || '' }],
-                    },
-                  ],
-                },
-              ],
-            }))
-          )
-        )
+        // setValue(
+        //   [
+        //     {
+        //       type: 'title',
+        //       children: [{ text: page.title || '' }],
+        //     } as Node,
+        //   ].concat(
+        //     page.blocks.map((block) => ({
+        //       type: 'ul_list',
+        //       children: [
+        //         {
+        //           type: 'list_item',
+        //           children: [
+        //             {
+        //               type: 'paragraph',
+        //               children: [{ text: block.content || '' }],
+        //             },
+        //           ],
+        //         },
+        //       ],
+        //     }))
+        //   )
+        // )
+        const value = modelToSlate(page).children
+        if (value.length > 0) {
+          setValue(value)
+        }
       }
     })
   }, [pageId])
@@ -224,6 +232,7 @@ const PageEditor = () => {
   const editor: ReactEditor = useMemo(
     () =>
       flowRight([
+        withSerialize,
         withEditList,
         withLayout,
         withChecklists,
@@ -260,21 +269,30 @@ const PageEditor = () => {
       b2.map((n) => ({ id: n.id, fromNode: n, content: Node.string(n) }))
     )
     const promise: any = services.update((page) => {
-      page.blocks = blocks
+      // page.blocks = blocks
     })
 
     if (!promise.attached) {
       promise.attached = true
-      promise.then(() => {
-        // iterate all nodes to populate id from created block
-        // TODO: using Editor.nodes to iterate all nested node
-        for (const [node, path] of Node.children(editor, [])) {
-          if (node.type === 'title') return
-          if (node.id != null) return
-          const block = services.resolveNewBlock(node)
-          if (block) Transforms.setNodes(editor, { id: block.id }, { at: path })
-        }
-      })
+      promise
+        .then(() => servicesRef.current.pageResolve)
+        .then(async (page) => {
+          const blocks = editor.children.map((node) => slateToModel(node, page))
+          const saved = await DataStore.save(
+            Page.copyOf(page, (page) => {
+              page.blocks = blocks
+            })
+          )
+          // // iterate all nodes to populate id from created block
+          // // TODO: using Editor.nodes to iterate all nested node
+          // for (const [node, path] of Node.children(editor, [])) {
+          //   if (node.type === 'title') return
+          //   if (node.id != null) return
+          //   const block = services.resolveNewBlock(node)
+          //   if (block)
+          //     Transforms.setNodes(editor, { id: block.id }, { at: path })
+          // }
+        })
     }
   }
 

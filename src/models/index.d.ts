@@ -14,7 +14,8 @@ export declare class Page {
 
 export declare class Block {
   readonly id: string;
-  readonly content?: string;
+  readonly type: string;
+  readonly json: string;
   readonly page: Page;
   readonly parent?: Block;
   readonly children?: Block[];

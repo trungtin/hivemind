@@ -50,11 +50,18 @@ export const schema = {
                     "isRequired": true,
                     "attributes": []
                 },
-                "content": {
-                    "name": "content",
+                "type": {
+                    "name": "type",
                     "isArray": false,
                     "type": "String",
-                    "isRequired": false,
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "json": {
+                    "name": "json",
+                    "isArray": false,
+                    "type": "AWSJSON",
+                    "isRequired": true,
                     "attributes": []
                 },
                 "page": {
@@ -109,5 +116,5 @@ export const schema = {
     },
     "enums": {},
     "nonModels": {},
-    "version": "4078e9ccaf89552bcb2ab43f86bca99b"
+    "version": "4792bceb7ad0042d58a069040daff7c4"
 };

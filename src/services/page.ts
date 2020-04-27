@@ -1,5 +1,5 @@
 import { DataStore, Predicates } from '@aws-amplify/datastore'
-import { Node } from 'slate'
+import { Node, Editor, Element } from 'slate'
 import { Page, Block } from '../models'
 import { batchAsync } from '../utils/batch'
 import keyBy from 'lodash/keyBy'
@@ -32,6 +32,18 @@ export function pageServices(id: string) {
 
   const services = {
     pageResolve,
+    async serialize(editor: Editor) {
+      const visited = new Set()
+      const serializableTypes = ['paragraph']
+      for (const [node, path] of Node.nodes(editor, {})) {
+        if (
+          Element.isElement(node) &&
+          serializableTypes.indexOf(node.type) !== -1
+        ) {
+          // if
+        }
+      }
+    },
     update: batchAsync(
       wrapResolve(
         pageResolve,
@@ -53,17 +65,17 @@ export function pageServices(id: string) {
       ) => {
         const map = keyBy(page.blocks, 'id')
 
-        return blocks.map((b) => {
-          const content = b.content || ''
-          if (b.id != null && map[b.id] != null) {
-            return Block.copyOf(map[b.id], (block) => {
-              block.content = content
-            })
-          }
-          const newBlock = new Block({ content: content, page })
-          newBlockMap.set(b.fromNode, newBlock)
-          return newBlock
-        })
+        // return blocks.map((b) => {
+        //   const content = b.content || ''
+        //   if (b.id != null && map[b.id] != null) {
+        //     return Block.copyOf(map[b.id], (block) => {
+        //       block.content = content
+        //     })
+        //   }
+        //   const newBlock = new Block({ content: content, page })
+        //   newBlockMap.set(b.fromNode, newBlock)
+        //   return newBlock
+        // })
       }
     ),
     resolveNewBlock: (blockObject: object) => {
