@@ -1,18 +1,20 @@
 type Page @model {
   id: ID!
   title: String
-  blocks: [Block]! @connection(name: "Blocks")
-}
-type Block @model {
-  id: ID!
-  content: String
-  page: Page! @connection(name: "Blocks")
-  parent: Block @connection(name: "ChildBlocks")
-  children: [Block] @connection(name: "ChildBlocks")
+  rootBlock: Block! @connection(name: "RootBlock")
 }
 
-# type Task 
-#   @model 
+type Block @model {
+  id: ID!
+  type: String!
+  json: AWSJSON!
+  page: Page @connection(name: "RootBlock")
+  parent: Block @connection(name: "ChildBlocks")
+  children: [Block]! @connection(name: "ChildBlocks")
+}
+
+# type Task
+#   @model
 #   @auth(rules: [
 #       {allow: groups, groups: ["Managers"], queries: null, mutations: [create, update, delete]},
 #       {allow: groups, groups: ["Employees"], queries: [get, list], mutations: null}

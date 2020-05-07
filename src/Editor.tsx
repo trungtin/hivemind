@@ -8,16 +8,17 @@ import { createEditor, Editor, Node, Range, Transforms, Point } from 'slate'
 import { withHistory } from 'slate-history'
 import { Editable, ReactEditor, Slate, withReact } from 'slate-react'
 import Suggestion from './components/Suggestion'
-import { pageServices } from './services/page'
+import { pageServices, getPage } from './services/page'
 import EditorControlBar from './components/EditorControlBar'
 import { CheckListItem } from './components/editor-elements/CheckListItem'
 import { EditListPlugin } from '@productboard/slate-edit-list'
 
 import Fuse from 'fuse.js'
 import { withSerialize } from './services/withSerialize'
-import { modelToSlate, slateToModel } from './services/serialize'
 import { Page } from './models'
 import { DataStore } from '@aws-amplify/datastore'
+import { usePromiseAsync } from './hooks/useAsync'
+import { modelToSlate } from './services/serialize'
 
 const [
   withEditList, // applies normalization to editor
@@ -173,17 +174,7 @@ function blockText(block) {
   return block.children.map((v) => v.text).join()
 }
 
-const PageEditor = () => {
-  let { pageId } = useParams()
-  const navigate = useNavigate()
-  let servicesRef = useRef(pageServices(pageId))
-
-  let services = servicesRef.current!
-  services.pageResolve.catch((e) => {
-    // something went wrong
-    navigate('/')
-  })
-
+const PageEditorInner = ({ page }: { page: Page }) => {
   const ref = useRef<HTMLDivElement>(null)
 
   const [value, setValue] = useState(initialValue)
@@ -193,46 +184,23 @@ const PageEditor = () => {
     null as null | { type: 'page' | 'command'; text: string }
   )
 
+  const services = useMemo(() => pageServices(page), [page])
   useEffect(() => {
-    servicesRef.current = pageServices(pageId)
-    servicesRef.current.pageResolve.then((page) => {
-      if (value === initialValue) {
-        // setValue(
-        //   [
-        //     {
-        //       type: 'title',
-        //       children: [{ text: page.title || '' }],
-        //     } as Node,
-        //   ].concat(
-        //     page.blocks.map((block) => ({
-        //       type: 'ul_list',
-        //       children: [
-        //         {
-        //           type: 'list_item',
-        //           children: [
-        //             {
-        //               type: 'paragraph',
-        //               children: [{ text: block.content || '' }],
-        //             },
-        //           ],
-        //         },
-        //       ],
-        //     }))
-        //   )
-        // )
-        const value = modelToSlate(page).children
-        if (value.length > 0) {
-          setValue(value)
-        }
-      }
-    })
-  }, [pageId])
+    editor.block = page.rootBlock
+    const value = modelToSlate(page).children
+    setValue(value)
+    if (value.length === 0) {
+      Promise.resolve().then(() => {
+        editor.normalizeNode([editor, []])
+      })
+    }
+  }, [page])
 
   const renderElement = useCallback((props) => <Element {...props} />, [])
   const editor: ReactEditor = useMemo(
     () =>
       flowRight([
-        withSerialize,
+        withSerialize(page),
         withEditList,
         withLayout,
         withChecklists,
@@ -264,35 +232,33 @@ const PageEditor = () => {
 
   async function updateBlocks(value, newValue) {
     // const b1 = value.filter((v) => v.type === 'paragraph')
-    const b2 = newValue.filter((v) => v.type === 'paragraph')
-    const blocks = await services.createBlockInstances(
-      b2.map((n) => ({ id: n.id, fromNode: n, content: Node.string(n) }))
-    )
+    // const b2 = newValue.filter((v) => v.type === 'paragraph')
+    // const blocks = await services.createBlockInstances(
+    //   b2.map((n) => ({ id: n.id, fromNode: n, content: Node.string(n) }))
+    // )
     const promise: any = services.update((page) => {
       // page.blocks = blocks
     })
 
     if (!promise.attached) {
       promise.attached = true
-      promise
-        .then(() => servicesRef.current.pageResolve)
-        .then(async (page) => {
-          const blocks = editor.children.map((node) => slateToModel(node, page))
-          const saved = await DataStore.save(
-            Page.copyOf(page, (page) => {
-              page.blocks = blocks
-            })
-          )
-          // // iterate all nodes to populate id from created block
-          // // TODO: using Editor.nodes to iterate all nested node
-          // for (const [node, path] of Node.children(editor, [])) {
-          //   if (node.type === 'title') return
-          //   if (node.id != null) return
-          //   const block = services.resolveNewBlock(node)
-          //   if (block)
-          //     Transforms.setNodes(editor, { id: block.id }, { at: path })
-          // }
-        })
+      promise.then(async () => {
+        // const blocks = editor.children.map((node) => slateToModel(node, page))
+        const saved = await DataStore.save(
+          Page.copyOf(page, (page) => {
+            // page.blocks = blocks
+          })
+        )
+        // // iterate all nodes to populate id from created block
+        // // TODO: using Editor.nodes to iterate all nested node
+        // for (const [node, path] of Node.children(editor, [])) {
+        //   if (node.type === 'title') return
+        //   if (node.id != null) return
+        //   const block = services.resolveNewBlock(node)
+        //   if (block)
+        //     Transforms.setNodes(editor, { id: block.id }, { at: path })
+        // }
+      })
     }
   }
 
@@ -364,7 +330,7 @@ const PageEditor = () => {
       }
     }
   }, [search])
-  console.log(editor)
+  console.log('editor: ', editor)
   return (
     <>
       <EuiText grow={false}>
@@ -375,7 +341,7 @@ const PageEditor = () => {
             const isChanged = value !== newValue
             if (isChanged) {
               updateTitle(value, newValue)
-              updateBlocks(value, newValue)
+              // updateBlocks(value, newValue)
             }
             setValue(newValue)
             const { selection } = editor
@@ -507,20 +473,17 @@ const Element = (props) => {
   }
 }
 
-const initialValue: Node[] = [
-  {
-    type: 'title',
-    children: [{ text: '' }],
-  },
-  {
-    type: 'ul_list',
-    children: [
-      {
-        type: 'list_item',
-        children: [{ type: 'paragraph', children: [{ text: '' }] }],
-      },
-    ],
-  },
-]
+const initialValue: Node[] = []
+
+function PageEditor() {
+  let { pageId } = useParams()
+  const navigate = useNavigate()
+  const { result: page, loading } = usePromiseAsync(getPage, [pageId], (e) => {
+    console.error(e)
+    navigate('/')
+  })
+  if (!page) return null
+  return <PageEditorInner page={page} />
+}
 
 export { PageEditor }

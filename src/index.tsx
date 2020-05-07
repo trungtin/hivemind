@@ -4,6 +4,10 @@ import './index.css'
 import App from './App'
 import * as serviceWorker from './serviceWorker'
 import { BrowserRouter } from 'react-router-dom'
+import { setIndexedDBAdapter } from '@aws-amplify/datastore/lib-esm/storage/adapter/getDefaultAdapter'
+import adapter from './datastore/idb-adapter'
+
+setIndexedDBAdapter(adapter)
 
 ReactDOM.render(
   <React.StrictMode>

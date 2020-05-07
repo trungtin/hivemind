@@ -17,17 +17,17 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
-                "blocks": {
-                    "name": "blocks",
-                    "isArray": true,
+                "rootBlock": {
+                    "name": "rootBlock",
+                    "isArray": false,
                     "type": {
                         "model": "Block"
                     },
                     "isRequired": true,
                     "attributes": [],
                     "association": {
-                        "connectionType": "HAS_MANY",
-                        "associatedWith": "page"
+                        "connectionType": "BELONGS_TO",
+                        "targetName": "pageRootBlockId"
                     }
                 }
             },
@@ -70,11 +70,11 @@ export const schema = {
                     "type": {
                         "model": "Page"
                     },
-                    "isRequired": true,
+                    "isRequired": false,
                     "attributes": [],
                     "association": {
-                        "connectionType": "BELONGS_TO",
-                        "targetName": "blockPageId"
+                        "connectionType": "HAS_ONE",
+                        "associatedWith": "rootBlock"
                     }
                 },
                 "parent": {
@@ -96,7 +96,7 @@ export const schema = {
                     "type": {
                         "model": "Block"
                     },
-                    "isRequired": false,
+                    "isRequired": true,
                     "attributes": [],
                     "association": {
                         "connectionType": "HAS_MANY",
@@ -116,5 +116,5 @@ export const schema = {
     },
     "enums": {},
     "nonModels": {},
-    "version": "4792bceb7ad0042d58a069040daff7c4"
+    "version": "f8a6c30f208bb3366c888beb26065880"
 };

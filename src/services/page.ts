@@ -1,83 +1,80 @@
 import { DataStore, Predicates } from '@aws-amplify/datastore'
-import { Node, Editor, Element } from 'slate'
-import { Page, Block } from '../models'
+import { Node } from 'slate'
+import { Block, Page } from '../models'
 import { batchAsync } from '../utils/batch'
-import keyBy from 'lodash/keyBy'
-
-function wrapResolve<
-  T,
-  U extends (...args: any[]) => unknown | Promise<unknown>
->(p: Promise<T>, f: (t: T) => U): U {
-  const res = ((async (...args) => {
-    const t = await p
-    const e = await f(t)(...args)
-    return e
-  }) as unknown) as U
-  return res
-}
 
 export async function initPage() {
-  return await DataStore.save(new Page({ title: '', blocks: [] }))
+  return await DataStore.save(
+    new Page({
+      title: '',
+      rootBlock: new Block({
+        type: 'root',
+        json: JSON.stringify({
+          type: 'root',
+          children: [
+            {
+              type: 'title',
+              children: [{ text: '' }],
+            },
+            {
+              type: 'ul_list',
+              children: [
+                {
+                  type: 'list_item',
+                  children: [{ type: 'paragraph', children: [{ text: '' }] }],
+                },
+              ],
+            },
+          ],
+        }),
+        children: [],
+      }),
+    })
+  )
 }
 
-export function pageServices(id: string) {
-  const pageResolve = DataStore.query(Page, (p) => p.id('eq', id)).then(
+export async function getPage(id: string) {
+  const page = await DataStore.query(Page, (p) => p.id('eq', id)).then(
     (res) => {
       let page = res[0]
       if (!page) throw new Error('Page not found')
       return page
     }
   )
+  // const rb = await DataStore.query(Block, (b) => b.id('eq', page.rootBlock.id))
+  console.log('page.rootBlock.children: ', page.rootBlock)
+  return page
+}
+
+export function pageServices(page: Page) {
   const newBlockMap = new WeakMap<object, Block>()
 
   const services = {
-    pageResolve,
-    async serialize(editor: Editor) {
-      const visited = new Set()
-      const serializableTypes = ['paragraph']
-      for (const [node, path] of Node.nodes(editor, {})) {
-        if (
-          Element.isElement(node) &&
-          serializableTypes.indexOf(node.type) !== -1
-        ) {
-          // if
-        }
-      }
-    },
     update: batchAsync(
-      wrapResolve(
-        pageResolve,
-        (page: Page) => async (
-          ...updaters: Parameters<typeof Page.copyOf>[1][]
-        ) => {
-          const saved = await DataStore.save(
-            Page.copyOf(page, (p) => updaters.forEach((u) => u(p)))
-          )
-          return saved
-        }
-      ),
+      async (...updaters: Parameters<typeof Page.copyOf>[1][]) => {
+        const saved = await DataStore.save(
+          Page.copyOf(page, (p) => updaters.forEach((u) => u(p)))
+        )
+        return saved
+      },
       400
     ),
-    createBlockInstances: wrapResolve(
-      pageResolve,
-      (page: Page) => (
-        blocks: { id: string; fromNode: Node; content: string }[]
-      ) => {
-        const map = keyBy(page.blocks, 'id')
-
-        // return blocks.map((b) => {
-        //   const content = b.content || ''
-        //   if (b.id != null && map[b.id] != null) {
-        //     return Block.copyOf(map[b.id], (block) => {
-        //       block.content = content
-        //     })
-        //   }
-        //   const newBlock = new Block({ content: content, page })
-        //   newBlockMap.set(b.fromNode, newBlock)
-        //   return newBlock
-        // })
-      }
-    ),
+    createBlockInstances: (
+      blocks: { id: string; fromNode: Node; content: string }[]
+    ) => {
+      // const map = keyBy(page.blocks, 'id')
+      // return blocks.map((b) => {
+      //   const content = b.content || ''
+      //   if (b.id != null && map[b.id] != null) {
+      //     return Block.copyOf(map[b.id], (block) => {
+      //       block.content = content
+      //     })
+      //   }
+      //   const newBlock = new Block({ content: content, page })
+      //   newBlockMap.set(b.fromNode, newBlock)
+      //   return newBlock
+      // })
+    },
     resolveNewBlock: (blockObject: object) => {
       return newBlockMap.get(blockObject)
     },
