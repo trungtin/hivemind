@@ -1,5 +1,7 @@
 import { Editor, Node, Path, Text, Transforms } from 'slate'
 import { Block, Page } from '../models'
+import { isModelConstructor } from '@aws-amplify/datastore/lib-esm/util'
+import { isBlock } from '../utils/block'
 
 function nextPath(root: Node, p: Path) {
   if (p.length === 0) return
@@ -47,7 +49,12 @@ function stringifyNode(node: Node) {
       children: node.children,
     }
   }
-  return JSON.stringify(copy)
+  return JSON.stringify(copy, (key, value) => {
+    if (isBlock(value.block)) {
+      return replacement(value.block)
+    }
+    return value
+  })
 }
 
 const replacement = (block: Block) => ({
@@ -61,7 +68,7 @@ function setBlockNode(root: Editor, path: Path, block: Block) {
     root,
     {
       block,
-      toJSON: () => replacement(block),
+      // toJSON: () => replacement(block),
     },
     { at: path }
   )
@@ -154,7 +161,10 @@ function _modelToSlate(block: Block) {
   for (const [n, p] of Node.nodes(json)) {
     if (n.type === 'block') {
       const childBlock = block.children!.find((child) => child.id === n.blockId)
-      if (!childBlock) throw new Error(`Cannot find block of id ${n.blockId}`)
+      if (!childBlock)
+        throw new Error(
+          `Cannot find block of id ${n.blockId}, parent: ${block.id}`
+        )
       const node = _modelToSlate(childBlock)
       const parent = Node.parent(json, p)
       parent.children[p[p.length - 1]] = node
@@ -164,7 +174,7 @@ function _modelToSlate(block: Block) {
     ...json,
     type: block.type,
     block: block,
-    toJSON: () => replacement(block),
+    // toJSON: () => replacement(block),
   }
 }
 

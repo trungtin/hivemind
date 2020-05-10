@@ -11,6 +11,7 @@ import { isBlockNode, slateToModel } from './serialize'
 import { Page, Block } from '../models'
 import debounce from 'lodash/debounce'
 import { DataStore, MutableModel } from '@aws-amplify/datastore'
+import { isBlock } from '../utils/block'
 
 const TO_BE_SAVED = new WeakMap<Page, { [blockId: string]: Block }>()
 
@@ -46,7 +47,8 @@ export const withSerialize = (page: Page) => (editor: Editor) => {
     const blocks = slateToModel(editor, {
       // match: (node) => node.dirty || !node.block,
     })
-    blocks.map((b) => DataStore.save(b))
+    console.log('saving: ', blocks)
+    blocks.map((b) => DataStore.save(b).catch(console.error))
   }, 2000)
 
   function updateUpward(node: Node, path: Path) {
@@ -132,7 +134,7 @@ export const withSerialize = (page: Page) => (editor: Editor) => {
         break
       }
       case 'split_node': {
-        const { path } = op
+        const { path, position, properties } = op
         // const ancestor = blockNodeAncestor(path)
         // if (!ancestor)
         //   throw new Error(
@@ -142,6 +144,10 @@ export const withSerialize = (page: Page) => (editor: Editor) => {
         //   )
         // const [n, p] = ancestor
         // updateNodeBlockAndAncestor(n, p)
+        if (isBlock(properties.block)) {
+          const nextPath = Path.next(path)
+          Transforms.setNodes(editor, { block: undefined }, { at: nextPath })
+        }
         const node = Node.get(editor, path)
         updateUpward(node, path)
         break

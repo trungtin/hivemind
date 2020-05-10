@@ -15,12 +15,13 @@ import {
   QueryOne,
   RelationType,
   PaginationInput,
+  SchemaNamespace,
+  ModelInstanceMetadata,
 } from '@aws-amplify/datastore/lib-esm/types'
 import {
   exhaustiveCheck,
   getIndex,
   isModelConstructor,
-  traverseModel,
   validatePredicate,
   isPrivateMode,
 } from '@aws-amplify/datastore/lib-esm/util'
@@ -31,7 +32,129 @@ const logger = new Logger('DataStore')
 
 const DB_NAME = 'amplify-datastore'
 
-const INITIALIZER = Symbol('initializer')
+// const INITIALIZER = Symbol('initializer')
+
+const topologicallySortedModels = new WeakMap<SchemaNamespace, string[]>()
+const traverseModel = <T extends PersistentModel>(
+  srcModelName: string,
+  instance: T,
+  namespace: SchemaNamespace,
+  modelInstanceCreator: ModelInstanceCreator,
+  getModelConstructorByModelName: (
+    namsespaceName: string,
+    modelName: string
+  ) => PersistentModelConstructor<any>
+) => {
+  const relationships = namespace.relationships
+  const modelConstructor = getModelConstructorByModelName(
+    namespace.name,
+    srcModelName
+  )
+
+  const relation = relationships![srcModelName]
+  const result: {
+    modelName: string
+    item: T
+    instance: T
+  }[] = []
+
+  const newInstance = modelConstructor.copyOf(instance, (draftInstance) => {
+    relation.relationTypes.forEach((rItem: RelationType) => {
+      const modelConstructor = getModelConstructorByModelName(
+        namespace.name,
+        rItem.modelName
+      )
+
+      switch (rItem.relationType) {
+        case 'HAS_ONE':
+          if (instance[rItem.fieldName]) {
+            let modelInstance: T
+            try {
+              modelInstance = modelInstanceCreator(
+                modelConstructor,
+                instance[rItem.fieldName]
+              )
+            } catch (error) {
+              // Do nothing
+            }
+
+            result.push({
+              modelName: rItem.modelName,
+              item: instance[rItem.fieldName],
+              instance: modelInstance!,
+            })
+            ;(<any>draftInstance)[rItem.fieldName] = (<PersistentModel>(
+              draftInstance[rItem.fieldName]
+            )).id
+          }
+
+          break
+        case 'BELONGS_TO':
+          if (instance[rItem.fieldName]) {
+            let modelInstance: T
+            try {
+              modelInstance = modelInstanceCreator(
+                modelConstructor,
+                instance[rItem.fieldName]
+              )
+            } catch (error) {
+              // Do nothing
+            }
+
+            const isDeleted = (<ModelInstanceMetadata>(
+              draftInstance[rItem.fieldName]
+            ))._deleted
+
+            if (!isDeleted) {
+              result.push({
+                modelName: rItem.modelName,
+                item: instance[rItem.fieldName],
+                instance: modelInstance!,
+              })
+            }
+          }
+
+          ;(<any>draftInstance)[rItem.targetName!] = draftInstance[
+            rItem.fieldName
+          ]
+            ? (<PersistentModel>draftInstance[rItem.fieldName]).id
+            : null
+
+          delete draftInstance[rItem.fieldName]
+
+          break
+        case 'HAS_MANY':
+          // Intentionally blank
+          delete draftInstance[rItem.fieldName]
+          break
+        default:
+          exhaustiveCheck(rItem.relationType)
+          break
+      }
+    })
+  })
+
+  result.unshift({
+    modelName: srcModelName,
+    item: newInstance,
+    instance: newInstance,
+  })
+
+  if (!topologicallySortedModels.has(namespace)) {
+    topologicallySortedModels.set(
+      namespace,
+      Array.from(namespace.modelTopologicalOrdering!.keys())
+    )
+  }
+
+  const sortedModels = topologicallySortedModels.get(namespace)!
+
+  result.sort((a, b) => {
+    return sortedModels.indexOf(a.modelName) - sortedModels.indexOf(b.modelName)
+  })
+
+  return result
+}
 
 function* deepIterate(obj, seen = new WeakSet<any>()) {
   if (seen.has(obj)) return
@@ -39,6 +162,7 @@ function* deepIterate(obj, seen = new WeakSet<any>()) {
 
   for (const key in obj) {
     if (obj.hasOwnProperty(key)) {
+      // DFS
       if (typeof obj[key] === 'object' && obj[key] !== null) {
         yield* deepIterate(obj[key], seen)
       }
