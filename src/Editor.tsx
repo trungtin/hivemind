@@ -11,7 +11,7 @@ import Suggestion from './components/Suggestion'
 import { pageServices, getPage } from './services/page'
 import EditorControlBar from './components/EditorControlBar'
 import { CheckListItem } from './components/editor-elements/CheckListItem'
-import { EditListPlugin } from '@productboard/slate-edit-list'
+import { EditListPlugin } from './editor-exts/list'
 
 import Fuse from 'fuse.js'
 import { withSerialize } from './services/withSerialize'

@@ -1795,11 +1795,6 @@
   resolved "https://registry.yarnpkg.com/@popperjs/core/-/core-2.3.3.tgz#8731722aeb7330e8fd9eb5d424be6b98dea7d6da"
   integrity sha512-yEvVC8RfhRPkD9TUn7cFcLcgoJePgZRAOR7T21rcRY5I8tpuhzeWfGa7We7tB14fe9R7wENdqUABcMdwD4SQLw==
 
-"@productboard/slate-edit-list@^0.21.3":
-  version "0.21.3"
-  resolved "https://registry.yarnpkg.com/@productboard/slate-edit-list/-/slate-edit-list-0.21.3.tgz#cd8bc762c5cd952b08add098019345b88dbbdcf6"
-  integrity sha512-b8mvMQ7IO2JWp4w0I43BVN/XhsDJzHV6W8DVxR/4B5FzimNHFOPA5odfI0uIyMT/hXsWFX9nTSXFRAoOg8IyDw==
-
 "@sheerun/mutationobserver-shim@^0.3.2":
   version "0.3.3"
   resolved "https://registry.yarnpkg.com/@sheerun/mutationobserver-shim/-/mutationobserver-shim-0.3.3.tgz#5405ee8e444ed212db44e79351f0c70a582aae25"
