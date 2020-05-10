@@ -188,15 +188,12 @@ const PageEditorInner = ({ page }: { page: Page }) => {
   useEffect(() => {
     editor.block = page.rootBlock
     const value = modelToSlate(page).children
-    setValue(value)
-    if (value.length === 0) {
-      Promise.resolve().then(() => {
-        editor.normalizeNode([editor, []])
-      })
-    }
+    editor.children = value
+    Editor.normalize(editor, { force: true })
+    setValue(editor.children)
   }, [page])
 
-  const renderElement = useCallback((props) => <Element {...props} />, [])
+  const renderElement = useCallback(props => <Element {...props} />, [])
   const editor: ReactEditor = useMemo(
     () =>
       flowRight([

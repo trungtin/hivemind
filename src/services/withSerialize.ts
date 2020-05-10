@@ -97,8 +97,11 @@ export const withSerialize = (page: Page) => (editor: Editor) => {
         // const [n, p] = ancestor
         // updateNodeBlockAndAncestor(n, p)
 
-        const node = Node.get(editor, path)
-        updateUpward(node, path)
+        // the way merge_node is done is merge the "path" with "previous path"
+        // so after the merge previous path is the correct one
+        const prevPath = Path.previous(path)
+        const node = Node.get(editor, prevPath)
+        updateUpward(node, prevPath)
         break
       }
       case 'move_node': {
@@ -146,7 +149,7 @@ export const withSerialize = (page: Page) => (editor: Editor) => {
         // updateNodeBlockAndAncestor(n, p)
         if (isBlock(properties.block)) {
           const nextPath = Path.next(path)
-          Transforms.setNodes(editor, { block: undefined }, { at: nextPath })
+          Transforms.unsetNodes(editor, 'block', { at: nextPath })
         }
         const node = Node.get(editor, path)
         updateUpward(node, path)
