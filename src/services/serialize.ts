@@ -115,7 +115,7 @@ function _slateToModel(
         if (childBlock.parent !== block) {
           childBlock = Block.copyOf(
             childBlock,
-            (childBlock) => (childBlock.parent = block)
+            childBlock => (childBlock.parent = block)
           )
         }
 
@@ -141,7 +141,7 @@ function _slateToModel(
   }
 
   return [
-    Block.copyOf(block, (block) => {
+    Block.copyOf(block, block => {
       const json = stringifyNode(node)
       block.json = json
     }),
@@ -160,7 +160,7 @@ function _modelToSlate(block: Block) {
   const json = JSON.parse(block.json)
   for (const [n, p] of Node.nodes(json)) {
     if (n.type === 'block') {
-      const childBlock = block.children!.find((child) => child.id === n.blockId)
+      const childBlock = block.children!.find(child => child.id === n.blockId)
       if (!childBlock)
         throw new Error(
           `Cannot find block of id ${n.blockId}, parent: ${block.id}`

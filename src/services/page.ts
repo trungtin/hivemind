@@ -34,13 +34,11 @@ export async function initPage() {
 }
 
 export async function getPage(id: string) {
-  const page = await DataStore.query(Page, (p) => p.id('eq', id)).then(
-    (res) => {
-      let page = res[0]
-      if (!page) throw new Error('Page not found')
-      return page
-    }
-  )
+  const page = await DataStore.query(Page, p => p.id('eq', id)).then(res => {
+    let page = res[0]
+    if (!page) throw new Error('Page not found')
+    return page
+  })
   // const rb = await DataStore.query(Block, (b) => b.id('eq', page.rootBlock.id))
   console.log('page.rootBlock.children: ', page.rootBlock)
   return page
@@ -53,7 +51,7 @@ export function pageServices(page: Page) {
     update: batchAsync(
       async (...updaters: Parameters<typeof Page.copyOf>[1][]) => {
         const saved = await DataStore.save(
-          Page.copyOf(page, (p) => updaters.forEach((u) => u(p)))
+          Page.copyOf(page, p => updaters.forEach(u => u(p)))
         )
         return saved
       },
@@ -83,7 +81,7 @@ export function pageServices(page: Page) {
         Page,
         searchText === ''
           ? Predicates.ALL
-          : (p) => p.title('contains', searchText),
+          : p => p.title('contains', searchText),
         { limit: 10 }
       )
       return pages

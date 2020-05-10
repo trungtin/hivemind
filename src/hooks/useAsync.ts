@@ -11,7 +11,7 @@ export function usePromiseAsync<A extends Array<any>, T>(
   useEffect(() => {
     fn.apply(fn, args)
       .then(setResult)
-      .catch((e) => {
+      .catch(e => {
         if (onFailed) onFailed(e)
         setError(e)
       })

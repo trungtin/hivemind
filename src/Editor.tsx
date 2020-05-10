@@ -45,7 +45,7 @@ const COMMAND_LIST = [
         { type: 'check-list-item' },
         {
           at: selection,
-          match: (n) => Editor.isBlock(editor, n) && n.type !== 'title',
+          match: n => Editor.isBlock(editor, n) && n.type !== 'title',
           split: false,
         }
       )
@@ -73,10 +73,10 @@ const Portal = ({ children }) => {
   return ReactDOM.createPortal(children, document.body)
 }
 
-const withPageLinkify = (editor) => {
+const withPageLinkify = editor => {
   const { isInline, isVoid } = editor
 
-  editor.isInline = (element) => {
+  editor.isInline = element => {
     switch (element.type) {
       case 'page-link':
         return true
@@ -104,7 +104,7 @@ const insertPageLink = (editor, link: PageLink) => {
   Transforms.move(editor)
 }
 
-const withChecklists = (editor) => {
+const withChecklists = editor => {
   const { deleteBackward } = editor
 
   editor.deleteBackward = (...args) => {
@@ -112,7 +112,7 @@ const withChecklists = (editor) => {
 
     if (selection && Range.isCollapsed(selection)) {
       const [match] = Editor.nodes(editor, {
-        match: (n) => n.type === 'check-list-item',
+        match: n => n.type === 'check-list-item',
       })
 
       if (match) {
@@ -123,7 +123,7 @@ const withChecklists = (editor) => {
           Transforms.setNodes(
             editor,
             { type: 'paragraph' },
-            { match: (n) => n.type === 'check-list-item' }
+            { match: n => n.type === 'check-list-item' }
           )
           return
         }
@@ -136,7 +136,7 @@ const withChecklists = (editor) => {
   return editor
 }
 
-const withLayout = (editor) => {
+const withLayout = editor => {
   const { normalizeNode } = editor
 
   editor.normalizeNode = ([node, path]) => {
@@ -171,7 +171,7 @@ const withLayout = (editor) => {
 }
 
 function blockText(block) {
-  return block.children.map((v) => v.text).join()
+  return block.children.map(v => v.text).join()
 }
 
 const PageEditorInner = ({ page }: { page: Page }) => {
@@ -225,7 +225,7 @@ const PageEditorInner = ({ page }: { page: Page }) => {
     const t2 = newValue[0]
     if (t1 === t2) return
 
-    await services.update((page) => {
+    await services.update(page => {
       page.title = blockText(t2)
     })
   }
@@ -236,7 +236,7 @@ const PageEditorInner = ({ page }: { page: Page }) => {
     // const blocks = await services.createBlockInstances(
     //   b2.map((n) => ({ id: n.id, fromNode: n, content: Node.string(n) }))
     // )
-    const promise: any = services.update((page) => {
+    const promise: any = services.update(page => {
       // page.blocks = blocks
     })
 
@@ -245,7 +245,7 @@ const PageEditorInner = ({ page }: { page: Page }) => {
       promise.then(async () => {
         // const blocks = editor.children.map((node) => slateToModel(node, page))
         const saved = await DataStore.save(
-          Page.copyOf(page, (page) => {
+          Page.copyOf(page, page => {
             // page.blocks = blocks
           })
         )
@@ -303,9 +303,9 @@ const PageEditorInner = ({ page }: { page: Page }) => {
       return
     }
     if (search.type === 'page') {
-      services.searchPage(search.text).then((pages) => {
+      services.searchPage(search.text).then(pages => {
         setSearchOptions(
-          pages.map((p) => ({
+          pages.map(p => ({
             value: p.id,
             label: p.title || '',
           }))
@@ -314,7 +314,7 @@ const PageEditorInner = ({ page }: { page: Page }) => {
     } else if (search.type === 'command') {
       if (search.text === '') {
         setSearchOptions(
-          COMMAND_LIST.map((c) => ({
+          COMMAND_LIST.map(c => ({
             value: c.label,
             label: c.label,
           }))
@@ -322,7 +322,7 @@ const PageEditorInner = ({ page }: { page: Page }) => {
       } else {
         const commands = commandSearch.search(search.text)
         setSearchOptions(
-          commands.map((c) => ({
+          commands.map(c => ({
             value: c.item.label,
             label: c.item.label,
           }))
@@ -337,7 +337,7 @@ const PageEditorInner = ({ page }: { page: Page }) => {
         <Slate
           editor={editor}
           value={value}
-          onChange={async (newValue) => {
+          onChange={async newValue => {
             const isChanged = value !== newValue
             if (isChanged) {
               updateTitle(value, newValue)
@@ -412,7 +412,7 @@ const PageEditorInner = ({ page }: { page: Page }) => {
                   <Suggestion
                     ref={suggestRef}
                     options={searchOptions}
-                    onOptionSelected={(option) => {
+                    onOptionSelected={option => {
                       if (search.type === 'page') {
                         insertPageLink(editor, {
                           id: option.value as string,
@@ -420,7 +420,7 @@ const PageEditorInner = ({ page }: { page: Page }) => {
                         })
                       } else if (search.type === 'command') {
                         const command = COMMAND_LIST.find(
-                          (c) => c.label === option.label
+                          c => c.label === option.label
                         )!
                         command.exec(editor)
                         if (target) {
@@ -442,7 +442,7 @@ const PageEditorInner = ({ page }: { page: Page }) => {
   )
 }
 
-const Element = (props) => {
+const Element = props => {
   const { attributes, children, element } = props
   switch (element.type) {
     case 'title':
@@ -478,7 +478,7 @@ const initialValue: Node[] = []
 function PageEditor() {
   let { pageId } = useParams()
   const navigate = useNavigate()
-  const { result: page, loading } = usePromiseAsync(getPage, [pageId], (e) => {
+  const { result: page, loading } = usePromiseAsync(getPage, [pageId], e => {
     console.error(e)
     navigate('/')
   })
