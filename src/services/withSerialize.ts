@@ -44,11 +44,23 @@ export const withSerialize = (page: Page) => (editor: Editor) => {
   }
 
   const debounced = debounce(async () => {
-    const blocks = slateToModel(editor, {
+    const toSave = slateToModel(editor, {
       // match: (node) => node.dirty || !node.block,
     })
-    console.log('saving: ', blocks)
-    blocks.map((b) => DataStore.save(b).catch(console.error))
+    console.log('saving: ', toSave)
+    const titleBlock = toSave.find((b) => b.type === 'title')
+    if (titleBlock) {
+      DataStore.save(
+        Page.copyOf(page, (page) => {
+          page.title = Node.string(titleBlock) || 'Untitled'
+        })
+      )
+        .then((saved) => {
+          page = saved
+        })
+        .catch(console.error)
+    }
+    toSave.map((b) => DataStore.save(b).catch(console.error))
   }, 2000)
 
   function updateUpward(node: Node, path: Path) {

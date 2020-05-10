@@ -3,7 +3,7 @@ import { createPopper } from '@popperjs/core'
 import flowRight from 'lodash/flowRight'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as ReactDOM from 'react-dom'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
 import { createEditor, Editor, Node, Range, Transforms, Point } from 'slate'
 import { withHistory } from 'slate-history'
 import { Editable, ReactEditor, Slate, withReact } from 'slate-react'
@@ -90,15 +90,17 @@ const withPageLinkify = (editor) => {
   return editor
 }
 
-type PageLink = {
-  id: string
-  text: string
-}
-
-const insertPageLink = (editor, link: PageLink) => {
+const insertPageLink = (
+  editor,
+  link: {
+    id: string
+    text: string
+  }
+) => {
   const pageLink = {
     type: 'page-link',
-    children: [{ pageId: link.id, text: link.text }],
+    pageId: link.id,
+    children: [{ text: link.text }],
   }
   Transforms.insertNodes(editor, pageLink)
   Transforms.move(editor)
@@ -185,15 +187,6 @@ const PageEditorInner = ({ page }: { page: Page }) => {
     null as null | { type: 'page' | 'command'; text: string }
   )
 
-  const services = useMemo(() => pageServices(page), [page])
-  useEffect(() => {
-    editor.block = page.rootBlock
-    const value = modelToSlate(page).children
-    editor.children = value
-    Editor.normalize(editor, { force: true })
-    setValue(editor.children)
-  }, [page])
-
   const renderElement = useCallback((props) => <Element {...props} />, [])
   const editor: ReactEditor = useMemo(
     () =>
@@ -207,8 +200,17 @@ const PageEditorInner = ({ page }: { page: Page }) => {
         withReact,
         createEditor,
       ])(),
-    []
+    [page]
   )
+
+  useEffect(() => {
+    editor.block = page.rootBlock
+    const value = modelToSlate(page).children
+    editor.children = value
+    Editor.normalize(editor, { force: true })
+    setValue(editor.children)
+  }, [editor])
+
   useEffect(() => {
     if (target && ref.current) {
       const targetDOM = ReactEditor.toDOMRange(editor, target)
@@ -218,47 +220,7 @@ const PageEditorInner = ({ page }: { page: Page }) => {
     }
   }, [target, ref])
 
-  async function updateTitle(value, newValue) {
-    const t1 = value[0]
-    const t2 = newValue[0]
-    if (t1 === t2) return
-
-    await services.update((page) => {
-      page.title = blockText(t2)
-    })
-  }
-
-  async function updateBlocks(value, newValue) {
-    // const b1 = value.filter((v) => v.type === 'paragraph')
-    // const b2 = newValue.filter((v) => v.type === 'paragraph')
-    // const blocks = await services.createBlockInstances(
-    //   b2.map((n) => ({ id: n.id, fromNode: n, content: Node.string(n) }))
-    // )
-    const promise: any = services.update((page) => {
-      // page.blocks = blocks
-    })
-
-    if (!promise.attached) {
-      promise.attached = true
-      promise.then(async () => {
-        // const blocks = editor.children.map((node) => slateToModel(node, page))
-        const saved = await DataStore.save(
-          Page.copyOf(page, (page) => {
-            // page.blocks = blocks
-          })
-        )
-        // // iterate all nodes to populate id from created block
-        // // TODO: using Editor.nodes to iterate all nested node
-        // for (const [node, path] of Node.children(editor, [])) {
-        //   if (node.type === 'title') return
-        //   if (node.id != null) return
-        //   const block = services.resolveNewBlock(node)
-        //   if (block)
-        //     Transforms.setNodes(editor, { id: block.id }, { at: path })
-        // }
-      })
-    }
-  }
+  const services = useMemo(() => pageServices(page), [page])
 
   const suggestRef = useRef<any>()
 
@@ -336,11 +298,6 @@ const PageEditorInner = ({ page }: { page: Page }) => {
           editor={editor}
           value={value}
           onChange={async (newValue) => {
-            const isChanged = value !== newValue
-            if (isChanged) {
-              updateTitle(value, newValue)
-              // updateBlocks(value, newValue)
-            }
             setValue(newValue)
             const { selection } = editor
 
@@ -449,12 +406,13 @@ const Element = (props) => {
           <h2 {...attributes}>{children}</h2>
         </EuiTitle>
       )
-    case 'page-link':
+    case 'page-link': {
       return (
-        <a href="#" {...attributes}>
+        <Link to={`/page/${element.pageId}`} {...attributes}>
           {children}
-        </a>
+        </Link>
       )
+    }
     case 'paragraph':
       return <p {...attributes}>{children}</p>
     case 'check-list-item':
@@ -481,7 +439,7 @@ function PageEditor() {
     navigate('/')
   })
   if (!page) return null
-  return <PageEditorInner page={page} />
+  return <PageEditorInner page={page} key={page.id} />
 }
 
 export { PageEditor }
