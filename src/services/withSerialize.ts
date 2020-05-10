@@ -122,8 +122,8 @@ export const withSerialize = (page: Page) => (editor: Editor) => {
         // const [nn, np] = newAncestor
         // updateNodeBlockAndAncestor(nn, np)
         // TODO: Test this
-        const node = Node.get(editor, path)
-        updateUpward(node, path)
+        const node = Node.get(editor, newPath)
+        updateUpward(node, Path.parent(path))
         updateUpward(node, newPath)
         break
       }

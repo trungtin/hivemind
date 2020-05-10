@@ -31,7 +31,7 @@ export function itemsWithoutParentListAreUnwrapped(
 
       return
     }
-    debugger
+
     const parentNode = parentNodePath && Node.get(editor, parentNodePath)
 
     // either no parent or not a list parent
