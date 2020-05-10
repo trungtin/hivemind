@@ -13,7 +13,7 @@ function flattenPanelTree(tree, array = [] as any[]) {
   array.push(tree)
 
   if (tree.items) {
-    tree.items.forEach((item) => {
+    tree.items.forEach(item => {
       if (item.panel) {
         flattenPanelTree(item.panel, array)
         item.panel = item.panel.id

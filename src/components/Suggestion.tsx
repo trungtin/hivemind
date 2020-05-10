@@ -30,7 +30,7 @@ function Suggestion(props: Props, ref) {
   const [activeOptionIndex, setActiveOptionIndex] = useState(-1)
 
   const onOptionClick = useCallback(
-    (option) => {
+    option => {
       onOptionSelected(option)
     },
     [onOptionSelected]
@@ -38,7 +38,7 @@ function Suggestion(props: Props, ref) {
 
   // const selectableRef = useRef(null as null | EuiSelectable)
   useImperativeHandle(ref, () => ({
-    handleKeyDown: (event) => {
+    handleKeyDown: event => {
       switch (event.key) {
         case 'ArrowDown':
           event.preventDefault()

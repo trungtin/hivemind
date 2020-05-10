@@ -58,7 +58,7 @@ const traverseModel = <T extends PersistentModel>(
     instance: T
   }[] = []
 
-  const newInstance = modelConstructor.copyOf(instance, (draftInstance) => {
+  const newInstance = modelConstructor.copyOf(instance, draftInstance => {
     relation.relationTypes.forEach((rItem: RelationType) => {
       const modelConstructor = getModelConstructorByModelName(
         namespace.name,
@@ -187,7 +187,7 @@ class IndexedDBAdapter implements Adapter {
   // private populatedCache = new Map<string, any>()
 
   private async checkPrivate() {
-    const isPrivate = await isPrivateMode().then((isPrivate) => {
+    const isPrivate = await isPrivateMode().then(isPrivate => {
       return isPrivate
     })
     if (isPrivate) {
@@ -244,15 +244,15 @@ class IndexedDBAdapter implements Adapter {
         this.db = await idb.openDB(DB_NAME, 1, {
           upgrade: (db, _oldVersion, _newVersion, _txn) => {
             const keyPath: string = <string>(<keyof PersistentModel>'id')
-            Object.keys(theSchema.namespaces).forEach((namespaceName) => {
+            Object.keys(theSchema.namespaces).forEach(namespaceName => {
               const namespace = theSchema.namespaces[namespaceName]
 
-              Object.keys(namespace.models).forEach((modelName) => {
+              Object.keys(namespace.models).forEach(modelName => {
                 const indexes = this.schema.namespaces[namespaceName]
                   .relationships![modelName].indexes
                 const storeName = this.getStorename(namespaceName, modelName)
                 const store = db.createObjectStore(storeName, { keyPath })
-                indexes.forEach((index) => store.createIndex(index, index))
+                indexes.forEach(index => store.createIndex(index, index))
               })
             })
           },
@@ -379,7 +379,7 @@ class IndexedDBAdapter implements Adapter {
         const { fieldName, modelName, targetName, associatedWith } = relation
         const inverseRelationship = namespace.relationships![
           modelName
-        ].relationTypes.find((rel) =>
+        ].relationTypes.find(rel =>
           relation.relationType === 'HAS_ONE' ||
           relation.relationType === 'HAS_MANY'
             ? rel.relationType === 'BELONGS_TO' &&
@@ -509,7 +509,7 @@ class IndexedDBAdapter implements Adapter {
       }
     }
 
-    return records.map((record) => {
+    return records.map(record => {
       try {
         // debugger
         // delete record[INITIALIZER]
@@ -537,7 +537,7 @@ class IndexedDBAdapter implements Adapter {
         const idPredicate =
           predicateObjs.length === 1 &&
           (predicateObjs.find(
-            (p) => isPredicateObj(p) && p.field === 'id' && p.operator === 'eq'
+            p => isPredicateObj(p) && p.field === 'id' && p.operator === 'eq'
           ) as PredicateObject<T>)
 
         if (idPredicate) {
@@ -559,7 +559,7 @@ class IndexedDBAdapter implements Adapter {
         const all = <T[]>await this.db.getAll(storeName)
 
         const filtered = predicateObjs
-          ? all.filter((m) => validatePredicate(m, type, predicateObjs))
+          ? all.filter(m => validatePredicate(m, type, predicateObjs))
           : all
 
         return await this.load(
@@ -825,13 +825,11 @@ class IndexedDBAdapter implements Adapter {
                 .relationTypes,
               srcModel
             )
-            const recordToDelete = <T>(
-              await this.db
-                .transaction(storeName, 'readwrite')
-                .objectStore(storeName)
-                .index(index)
-                .get(model.id)
-            )
+            const recordToDelete = <T>await this.db
+              .transaction(storeName, 'readwrite')
+              .objectStore(storeName)
+              .index(index)
+              .get(model.id)
 
             await this.deleteTraverse(
               this.schema.namespaces[nameSpace].relationships![modelName]
@@ -877,7 +875,7 @@ class IndexedDBAdapter implements Adapter {
 
     deleteQueue.push({
       storeName: this.getStorename(nameSpace, srcModel),
-      items: models.map((record) =>
+      items: models.map(record =>
         this.modelInstanceCreator(
           this.getModelConstructorByModelName(nameSpace, srcModel),
           record

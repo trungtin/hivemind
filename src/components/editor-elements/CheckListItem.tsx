@@ -23,7 +23,7 @@ export function CheckListItem({ attributes, children, element }) {
         id={id}
         checked={checked}
         disabled={disabled}
-        onChange={(event) => {
+        onChange={event => {
           if (event.target.tagName === 'LABEL') {
             event.preventDefault()
             return

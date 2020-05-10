@@ -1,4 +1,3 @@
-
 import { ConsoleLogger as Logger } from '@aws-amplify/core'
 import Dexie from 'dexie'
 import { Adapter } from '@aws-amplify/datastore/lib-esm/storage/adapter'
@@ -134,8 +133,8 @@ class DexieAdapter implements Adapter {
     )
     return await this.db.transaction(
       'rw',
-      [storeName, ...Array.from(set.values())].map((n) => this.db[n]),
-      async (tx) => {
+      [storeName, ...Array.from(set.values())].map(n => this.db[n]),
+      async tx => {
         const store = tx.table(storeName)
 
         const fromDB = await store.get(model.id)
@@ -199,12 +198,12 @@ class DexieAdapter implements Adapter {
     )
 
     if (connectionStoreNames.length === 0) {
-      return records.map((record) =>
+      return records.map(record =>
         this.modelInstanceCreator(modelConstructor, record)
       )
     }
 
-    await this.db.transaction('r', [...connectionStoreNames], async (tx) => {
+    await this.db.transaction('r', [...connectionStoreNames], async tx => {
       for await (const relation of relations) {
         const { fieldName, modelName, targetName } = relation
         const storeName = this.getStorename(namespaceName, modelName)
@@ -255,7 +254,7 @@ class DexieAdapter implements Adapter {
       }
     })
 
-    return records.map((record) =>
+    return records.map(record =>
       this.modelInstanceCreator(modelConstructor, record)
     )
   }
@@ -276,7 +275,7 @@ class DexieAdapter implements Adapter {
         const idPredicate =
           predicateObjs.length === 1 &&
           (predicateObjs.find(
-            (p) => isPredicateObj(p) && p.field === 'id' && p.operator === 'eq'
+            p => isPredicateObj(p) && p.field === 'id' && p.operator === 'eq'
           ) as PredicateObject<T>)
 
         if (idPredicate) {
@@ -298,7 +297,7 @@ class DexieAdapter implements Adapter {
         const all = (await this.db[storeName].toArray()) as T[]
 
         const filtered = predicateObjs
-          ? all.filter((m) => validatePredicate(m, type, predicateObjs))
+          ? all.filter(m => validatePredicate(m, type, predicateObjs))
           : all
 
         return await this.load(
@@ -410,7 +409,7 @@ class DexieAdapter implements Adapter {
         )
 
         // Delete all
-        await this.db.transaction('rw', [storeName], async (tx) => {
+        await this.db.transaction('rw', [storeName], async tx => {
           return tx.table(storeName).clear()
         })
 
@@ -431,7 +430,7 @@ class DexieAdapter implements Adapter {
       const storeName = this.getStorenameForModel(modelConstructor)
 
       if (condition) {
-        await this.db.transaction('rw', [storeName], async (tx) => {
+        await this.db.transaction('rw', [storeName], async tx => {
           const store = tx.table(storeName)
 
           const fromDB = await store.get(model.id)
@@ -497,7 +496,7 @@ class DexieAdapter implements Adapter {
       return storeName
     })
 
-    await this.db.transaction('rw', [...connectionStoreNames], async (tx) => {
+    await this.db.transaction('rw', [...connectionStoreNames], async tx => {
       for await (const deleteItem of deleteQueue) {
         const { storeName, items } = deleteItem
         const store = tx[storeName]
@@ -535,7 +534,7 @@ class DexieAdapter implements Adapter {
             const recordToDelete = (await this.db.transaction(
               'rw',
               storeName,
-              async (tx) => {
+              async tx => {
                 const store = tx.table(storeName)
                 return (
                   store
@@ -565,7 +564,7 @@ class DexieAdapter implements Adapter {
             const childrenArray = await this.db.transaction(
               'rw',
               storeName,
-              async (tx) => {
+              async tx => {
                 return tx
                   .table(storeName)
                   .where(index)
@@ -595,7 +594,7 @@ class DexieAdapter implements Adapter {
 
     deleteQueue.push({
       storeName: this.getStorename(nameSpace, srcModel),
-      items: models.map((record) =>
+      items: models.map(record =>
         this.modelInstanceCreator(
           this.getModelConstructorByModelName(nameSpace, srcModel),
           record
